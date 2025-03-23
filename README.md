@@ -38,6 +38,15 @@ env
     - php artisan migrate
     - php artisan serve
 
+    #### Using Docker
+
+5. Build and start the containers
+    - docker-compose up -d --build
+6. Run database migrations
+    - docker-compose exec app php artisan migrate
+7. Run Laravel development server
+    - docker-compose exec app php artisan serve
+
 ## Commands used
 
 - php artisan make:controller [ControllerName] - Create controllers for managing user input and handling actions like logging in or updating profiles.
@@ -65,3 +74,14 @@ env
 - Styling: Tailwind CSS
 - Routing: Inertia.js
 - Axios: For API calls
+
+#### DevOps
+- Docker (For Containerization)
+- Nginx (As a Web Server)
+- PHP-FPM (For Laravel Backend)
+- Node.js (For Vue.js Compilation)
+
+## Additional Info
+
+- We have included created_by, updated_by, and deleted_by columns in the tasks table to track who created, updated, and deleted each task.
+- As authentication is not required as per the requirement, these fields are temporarily set to 1.
