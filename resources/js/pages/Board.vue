@@ -1,142 +1,24 @@
 <script setup lang="ts">
-    import { ref, watchEffect, onMounted } from "vue";
-    import axios from "axios";
-    import draggable from 'vuedraggable';
-    import { createToaster } from "@meforma/vue-toaster";
+    import draggable from "vuedraggable";
+    import { onMounted } from "vue";
+    import board from "@/composables/board";
 
-    // Kanban board columns
-    const columns = ref([
-        { id: "0", title: "To Do", tasks: [] },
-        { id: "1", title: "In Progress", tasks: [] },
-        { id: "2", title: "Done", tasks: [] },
-    ]);
+    const {
+        columns,
+        newTaskTitle,
+        isAddingTask,
+        editingTaskId,
+        editedTaskTitle,
+        isDragging,
+        editTask,
+        updateTask,
+        cancelEdit,
+        fetchTasks,
+        addTask,
+        deleteTask,
+        saveTaskOrder,
+    } = board();
 
-    const newTaskTitle = ref < Record < string,
-        string >> ({});
-    const isAddingTask = ref < Record < string,
-        boolean >> ({});
-
-    const editingTaskId = ref(null);
-    const editedTaskTitle = ref("");
-
-    const isDragging = ref(false);
-
-    const editTask = (task) => {
-        editingTaskId.value = task.id;
-        editedTaskTitle.value = task.description;
-    };
-
-    const toaster = createToaster({ /* options */ });
-
-    // update task
-    const updateTask = async (columnId, taskId) => {
-        if (!editedTaskTitle.value.trim()) {
-            cancelEdit();
-            return;
-        }
-
-        try {
-            const response = await axios.put(`/tasks/${taskId}`, { description: editedTaskTitle.value });
-
-            // Update UI
-            const column = columns.value.find(col => col.id === columnId);
-            if (column) {
-                const task = column.tasks.find(t => t.id === taskId);
-                if (task) task.description = editedTaskTitle.value;
-            }
-
-            cancelEdit();
-            toaster.show(response.data.message, {
-                position: "top-right",
-            });
-        } catch (error) {
-            console.error("Error updating task:", error);
-        }
-    };
-
-    const cancelEdit = () => {
-        editingTaskId.value = null;
-        editedTaskTitle.value = "";
-    };
-
-    // Fetch tasks from Laravel API
-    const fetchTasks = async () => {
-        try {
-            const response = await axios.get("/tasks");
-            columns.value.forEach(column => {
-                column.tasks = response.data
-                    .filter(task => task.status === column.id)
-                    .sort((a, b) => a.position - b.position); // Sort by position
-            });
-        } catch (error) {
-            console.error("Error fetching tasks:", error);
-        }
-    };
-
-    // Add a new task
-    const addTask = async (columnId: string) => {
-        if (!newTaskTitle.value[columnId]?.trim()) return;
-        const response = await axios.post("/tasks", {
-            description: newTaskTitle.value[columnId],
-            status: columnId
-        });
-
-        const column = columns.value.find(col => col.id === columnId);
-        if (column) {
-            column.tasks.push(response.data.task);
-            newTaskTitle.value[columnId] = "";
-            isAddingTask.value[columnId] = false;
-        }
-        toaster.show(response.data.message, {
-            position: "top-right",
-        });
-    };
-
-    // Delete a task
-    const deleteTask = async (columnId: string, taskId: number) => {
-        const confirmDelete = window.confirm("Are you sure you want to delete this task?");
-        if (!confirmDelete) return;
-        try {
-            const response = await axios.delete(`/tasks/${taskId}`);
-            const column = columns.value.find(col => col.id === columnId);
-            if (column) {
-                column.tasks = column.tasks.filter(task => task.id !== taskId);
-            }
-            toaster.show(response.data.message, {
-                position: "top-right",
-            });
-        } catch (error) {
-            console.error("Error deleting task:", error);
-        }
-    };
-
-    // reorder task
-    const saveTaskOrder = async () => {
-        if (!isDragging.value) return; // Only proceed if it was a drag-and-drop action
-        try {
-            const response = await axios.post("/tasks/reorder", {
-                columns: columns.value.map((col) => ({
-                    id: col.id,
-                    tasks: col.tasks,
-                })),
-            });
-            toaster.show(response.data.message, {
-                position: "top-right",
-            });
-        } catch (error) {
-            console.error("Error updating tasks:", error);
-        } finally {
-            isDragging.value = false; // Reset dragging flag
-        }
-    };
-
-    // Watch for changes in task order and save to DB
-    watchEffect(
-        () => columns.value.map((column) => column.tasks),
-        saveTaskOrder, { deep: true }
-    );
-
-    // Fetch tasks on mount
     onMounted(fetchTasks);
 </script>
 
